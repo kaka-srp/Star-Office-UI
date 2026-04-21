@@ -4009,11 +4009,9 @@ function toggleBrokerPanel() {
             // 动态替换后按最新素材识别：当前 writing 素材为 300x300 单帧
             this.load.spritesheet('star_working', '/static/star-working-spritesheet-grid.webp?v={{VERSION_TIMESTAMP}}', { frameWidth: 300, frameHeight: 300 });
 
-            // AI-generated action stickers — one per work state (see /tmp/star-gen)
-            this.load.image('cat_writing',     '/static/cat-writing.png?v={{VERSION_TIMESTAMP}}');
-            this.load.image('cat_executing',   '/static/cat-executing.png?v={{VERSION_TIMESTAMP}}');
-            this.load.image('cat_thinking',    '/static/cat-thinking.png?v={{VERSION_TIMESTAMP}}');
-            this.load.image('cat_researching', '/static/cat-researching.png?v={{VERSION_TIMESTAMP}}');
+            // AI-generated furniture sprites — mounted in the scene, not tied to state.
+            this.load.image('whiteboard_art', '/static/whiteboard.png?v={{VERSION_TIMESTAMP}}');
+            this.load.image('edit_desk',      '/static/edit-desk.png?v={{VERSION_TIMESTAMP}}');
 
             // Sync state animation (256x256, 多帧): 非同步显示首帧，同步从第2帧循环
             this.load.spritesheet('sync_anim', '/static/sync-animation-v3-grid.webp?v={{VERSION_TIMESTAMP}}', { frameWidth: 256, frameHeight: 256 });
@@ -4199,6 +4197,8 @@ function toggleBrokerPanel() {
             const coffeeMachine = this.add.sprite(659, 397, 'coffee_machine').setOrigin(0.5);
             coffeeMachine.setDepth(99);
             coffeeMachine.anims.play('coffee_machine', true);
+            window.coffeeMachine = coffeeMachine;
+            window.coffeeMachineShadow = coffeeMachineShadow;
 
             // Server room animation
             const serverFrameMax = Math.max(0, (this.textures.get('serverroom')?.frameTotal || 1) - 2);
@@ -4264,29 +4264,30 @@ function toggleBrokerPanel() {
             // Store reference to starWorking for state logic
             window.starWorking = starWorking;
 
-            // AI-generated action stickers (Nano Banana Pro, bundled in frontend/cat-*.png).
-            // The PNGs are pre-cropped to their bbox and resampled to 300 px wide, so
-            // scale 0.9 yields a ~270 px visible cat — comparable to the other desk-area
-            // sprites in the original Star layout.
-            const stickerScale = 0.9;
-            const stickerDepth = 1050; // above desks/server; below sync overlay
-            const writingLoc     = areas.writing     || { x: 320, y: 360 };
-            const executingLoc   = areas.executing   || { x: 920, y: 230 };
-            const thinkingLoc    = areas.thinking    || { x: 400, y: 160 };
-            const researchingLoc = areas.researching || { x: 320, y: 360 };
-            const mkSticker = (key, loc) => {
-                const s = this.add.image(loc.x, loc.y, key).setOrigin(0.5);
-                s.setVisible(false);
-                s.setScale(stickerScale);
-                s.setDepth(stickerDepth);
-                return s;
-            };
-            window.catStickers = {
-                writing:     mkSticker('cat_writing',     writingLoc),
-                executing:   mkSticker('cat_executing',   executingLoc),
-                thinking:    mkSticker('cat_thinking',    thinkingLoc),
-                researching: mkSticker('cat_researching', researchingLoc),
-            };
+            // Generated furniture: mounted once, stays visible across states.
+            //   whiteboard_art — wall-mounted whiteboard for the "thinking" workstation
+            //   edit_desk      — extra writing desk occupying the coffee-machine slot
+            if (this.textures.exists('whiteboard_art')) {
+                const wb = this.add.image(400, 90, 'whiteboard_art').setOrigin(0.5);
+                wb.setScale(0.9);
+                wb.setDepth(4); // below character, above bg
+                window.whiteboardArt = wb;
+            }
+            if (this.textures.exists('edit_desk')) {
+                const ed = this.add.image(659, 397, 'edit_desk').setOrigin(0.5);
+                ed.setScale(0.9);
+                ed.setDepth(1200); // push above coffee machine and anything else at this slot
+                window.editDesk = ed;
+            }
+            // Hide the original coffee machine (and its shadow) so the edit desk isn't
+            // visually crowded at the same slot.
+            if (window.coffeeMachine?.setVisible) {
+                window.coffeeMachine.setVisible(false);
+                window.coffeeMachine.anims?.stop?.();
+            }
+            if (window.coffeeMachineShadow?.setVisible) {
+                window.coffeeMachineShadow.setVisible(false);
+            }
 
             // Sync animation sprite at (1157,592)
             const syncFrameTotal = Number(this.textures.get('sync_anim')?.frameTotal || 0);
@@ -4624,33 +4625,21 @@ function toggleBrokerPanel() {
             return s;
         }
 
-        function hideAllCatStickers() {
-            if (!window.catStickers) return;
-            for (const k of Object.keys(window.catStickers)) {
-                const s = window.catStickers[k];
-                if (s && s.setVisible) s.setVisible(false);
-            }
-        }
-
-        function showCatStickerFor(stateKey) {
-            if (!window.catStickers) return false;
-            const s = window.catStickers[stateKey];
-            if (!s || !s.setVisible) return false;
-            hideAllCatStickers();
-            s.setVisible(true);
-            return true;
-        }
+        // Work-state positions for the star_working sprite.
+        //   researching — desk 1 (original starWorking spot, 217,343)
+        //   writing     — edit desk 2 (coffee-machine slot). y offset mirrors the original
+        //                 starWorking vs desk_v2 relationship so the cat's torso sits above
+        //                 the desk while legs hide behind it.
+        //   executing   — server area, same as errorBug
+        //   thinking    — below the whiteboard on the wall
+        const WORK_POSITIONS = {
+            researching: { x: 217, y: 343 },
+            writing:     { x: 659, y: 333 },
+            executing:   { x: 1007, y: 221 },
+            thinking:    { x: 400, y: 190 },
+        };
 
         function applyVisualState(nextState) {
-            // Work-state cat stickers: show exactly one (or none) depending on state.
-            const stickerState = (nextState === 'writing' || nextState === 'executing'
-                || nextState === 'thinking' || nextState === 'researching') ? nextState : null;
-            if (stickerState) {
-                showCatStickerFor(stickerState);
-            } else {
-                hideAllCatStickers();
-            }
-
             // Idle: show Star idle animation (main character)
             if (nextState === 'idle') {
                 sofa.anims.stop();
@@ -4686,16 +4675,17 @@ function toggleBrokerPanel() {
                     window.starWorking.anims.stop();
                 }
             } else {
-                // Any work state (writing / researching / executing / thinking) is now
-                // rendered via the AI-generated stickers shown above. We just need to
-                // hide the old sprites so they don't overlap.
+                // Any work state (writing / researching / executing / thinking):
+                // reuse the starWorking animation and move it to the station.
                 sofa.anims.stop();
                 sofa.setTexture('sofa_idle');
                 star.setVisible(false);
                 star.anims.stop();
                 if (window.starWorking) {
-                    window.starWorking.setVisible(false);
-                    window.starWorking.anims.stop();
+                    const pos = WORK_POSITIONS[nextState] || WORK_POSITIONS.researching;
+                    window.starWorking.setPosition(pos.x, pos.y);
+                    window.starWorking.setVisible(true);
+                    window.starWorking.anims.play('star_working', true);
                 }
             }
 
