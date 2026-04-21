@@ -777,6 +777,9 @@ function beginWalkTo(nextState) {
   const endArea = areas[stateInfo.area] || areas.breakroom;
   const startPos = getCurrentScenePos();
 
+  console.log('[walk] state=%s  from=(%d,%d)  to=(%d,%d) via area "%s"',
+    nextState, startPos.x | 0, startPos.y | 0, endArea.x | 0, endArea.y | 0, stateInfo.area);
+
   // Hide all destination sprites — star proxy takes over for the walk.
   if (window.starWorking) {
     window.starWorking.setVisible(false);
@@ -787,9 +790,7 @@ function beginWalkTo(nextState) {
   // Teleport walking proxy to the starting scene position
   star.setPosition(startPos.x, startPos.y);
   star.setVisible(true);
-  if (!star.anims.isPlaying) {
-    star.anims.play('star_idle', true);
-  }
+  star.anims.play('star_idle', true);
 
   // Kick off the walk
   waypoints = [{ x: endArea.x, y: endArea.y }];
@@ -899,6 +900,7 @@ function moveStar(time) {
     const arrived = pendingDesiredState;
     currentState = arrived;
     pendingDesiredState = null;
+    console.log('[walk] arrived -> %s at (%d,%d)', arrived, star.x | 0, star.y | 0);
     arriveAt(arrived);
   }
 }

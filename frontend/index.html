@@ -4265,12 +4265,10 @@ function toggleBrokerPanel() {
             window.starWorking = starWorking;
 
             // AI-generated action stickers (Nano Banana Pro, bundled in frontend/cat-*.png).
-            // Each sticker is its own sprite anchored at the area coords; only the sticker
-            // matching the current state is made visible.  The source PNGs are ~1024-1408
-            // wide but the actual content bbox is usually ~30% of the canvas, so we render
-            // at scale 0.55 — that brings the visible cat region to ~220 px, comparable to
-            // Star's other desk-area sprites.
-            const stickerScale = 0.55;
+            // The PNGs are pre-cropped to their bbox and resampled to 300 px wide, so
+            // scale 0.9 yields a ~270 px visible cat — comparable to the other desk-area
+            // sprites in the original Star layout.
+            const stickerScale = 0.9;
             const stickerDepth = 1050; // above desks/server; below sync overlay
             const writingLoc     = areas.writing     || { x: 320, y: 360 };
             const executingLoc   = areas.executing   || { x: 920, y: 230 };
