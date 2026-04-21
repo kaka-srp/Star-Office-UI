@@ -4009,6 +4009,12 @@ function toggleBrokerPanel() {
             // 动态替换后按最新素材识别：当前 writing 素材为 300x300 单帧
             this.load.spritesheet('star_working', '/static/star-working-spritesheet-grid.webp?v={{VERSION_TIMESTAMP}}', { frameWidth: 300, frameHeight: 300 });
 
+            // AI-generated action stickers — one per work state (see /tmp/star-gen)
+            this.load.image('cat_writing',     '/static/cat-writing.png?v={{VERSION_TIMESTAMP}}');
+            this.load.image('cat_executing',   '/static/cat-executing.png?v={{VERSION_TIMESTAMP}}');
+            this.load.image('cat_thinking',    '/static/cat-thinking.png?v={{VERSION_TIMESTAMP}}');
+            this.load.image('cat_researching', '/static/cat-researching.png?v={{VERSION_TIMESTAMP}}');
+
             // Sync state animation (256x256, 多帧): 非同步显示首帧，同步从第2帧循环
             this.load.spritesheet('sync_anim', '/static/sync-animation-v3-grid.webp?v={{VERSION_TIMESTAMP}}', { frameWidth: 256, frameHeight: 256 });
 
@@ -4257,6 +4263,32 @@ function toggleBrokerPanel() {
             starWorking.setDepth(900);  // starWorking under desk so desk partially covers it
             // Store reference to starWorking for state logic
             window.starWorking = starWorking;
+
+            // AI-generated action stickers (Nano Banana Pro, bundled in frontend/cat-*.png).
+            // Each sticker is its own sprite anchored at the area coords; only the sticker
+            // matching the current state is made visible.  The source PNGs are ~1024-1408
+            // wide but the actual content bbox is usually ~30% of the canvas, so we render
+            // at scale 0.55 — that brings the visible cat region to ~220 px, comparable to
+            // Star's other desk-area sprites.
+            const stickerScale = 0.55;
+            const stickerDepth = 1050; // above desks/server; below sync overlay
+            const writingLoc     = areas.writing     || { x: 320, y: 360 };
+            const executingLoc   = areas.executing   || { x: 920, y: 230 };
+            const thinkingLoc    = areas.thinking    || { x: 400, y: 160 };
+            const researchingLoc = areas.researching || { x: 320, y: 360 };
+            const mkSticker = (key, loc) => {
+                const s = this.add.image(loc.x, loc.y, key).setOrigin(0.5);
+                s.setVisible(false);
+                s.setScale(stickerScale);
+                s.setDepth(stickerDepth);
+                return s;
+            };
+            window.catStickers = {
+                writing:     mkSticker('cat_writing',     writingLoc),
+                executing:   mkSticker('cat_executing',   executingLoc),
+                thinking:    mkSticker('cat_thinking',    thinkingLoc),
+                researching: mkSticker('cat_researching', researchingLoc),
+            };
 
             // Sync animation sprite at (1157,592)
             const syncFrameTotal = Number(this.textures.get('sync_anim')?.frameTotal || 0);
@@ -4594,7 +4626,33 @@ function toggleBrokerPanel() {
             return s;
         }
 
+        function hideAllCatStickers() {
+            if (!window.catStickers) return;
+            for (const k of Object.keys(window.catStickers)) {
+                const s = window.catStickers[k];
+                if (s && s.setVisible) s.setVisible(false);
+            }
+        }
+
+        function showCatStickerFor(stateKey) {
+            if (!window.catStickers) return false;
+            const s = window.catStickers[stateKey];
+            if (!s || !s.setVisible) return false;
+            hideAllCatStickers();
+            s.setVisible(true);
+            return true;
+        }
+
         function applyVisualState(nextState) {
+            // Work-state cat stickers: show exactly one (or none) depending on state.
+            const stickerState = (nextState === 'writing' || nextState === 'executing'
+                || nextState === 'thinking' || nextState === 'researching') ? nextState : null;
+            if (stickerState) {
+                showCatStickerFor(stickerState);
+            } else {
+                hideAllCatStickers();
+            }
+
             // Idle: show Star idle animation (main character)
             if (nextState === 'idle') {
                 sofa.anims.stop();
@@ -4629,32 +4687,17 @@ function toggleBrokerPanel() {
                     window.starWorking.setVisible(false);
                     window.starWorking.anims.stop();
                 }
-            } else if (nextState === 'executing' || nextState === 'thinking') {
-                // Executing / thinking reuse starWorking sprite but relocate it
-                // to the area coords (server rack / poster wall).
-                sofa.anims.stop();
-                sofa.setTexture('sofa_idle');
-                star.setVisible(false);
-                star.anims.stop();
-                if (window.starWorking) {
-                    const info = STATES[nextState] || STATES.idle;
-                    const loc = areas[info.area] || areas.breakroom;
-                    window.starWorking.setPosition(loc.x, loc.y);
-                    window.starWorking.setVisible(true);
-                    window.starWorking.anims.play('star_working', true);
-                }
             } else {
-                // Non-idle non-error: starWorking animation at desk (writing / researching)
+                // Any work state (writing / researching / executing / thinking) is now
+                // rendered via the AI-generated stickers shown above. We just need to
+                // hide the old sprites so they don't overlap.
                 sofa.anims.stop();
                 sofa.setTexture('sofa_idle');
-                // Hide moving star, show desk star
                 star.setVisible(false);
                 star.anims.stop();
                 if (window.starWorking) {
-                    // Reset to the pre-authored desk position (217, 343).
-                    window.starWorking.setPosition(217, 343);
-                    window.starWorking.setVisible(true);
-                    window.starWorking.anims.play('star_working', true);
+                    window.starWorking.setVisible(false);
+                    window.starWorking.anims.stop();
                 }
             }
 
