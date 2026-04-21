@@ -1616,7 +1616,8 @@
             idle: { name: '待命', area: 'breakroom' },
             writing: { name: '整理文档', area: 'writing' },
             researching: { name: '搜索信息', area: 'researching' },
-            executing: { name: '执行任务', area: 'writing' },
+            executing: { name: '执行任务', area: 'executing' },
+            thinking: { name: '思考设计', area: 'thinking' },
             syncing: { name: '同步备份', area: 'writing' },
             error: { name: '出错了', area: 'error' }
         };
@@ -1629,6 +1630,7 @@
                 executing: ['执行中：不要眨眼','把任务切成小块逐个击破','开始跑 pipeline','一键推进：走你','让结果自己说话','先做最小可行，再做最美版本'],
                 syncing: ['同步中：把今天锁进云里','备份不是仪式，是安全感','写入中…别断电','把变更交给时间戳','云端对齐：咔哒','同步完成前先别乱动','把未来的自己从灾难里救出来','多一份备份，少一份后悔'],
                 error: ['警报响了：先别慌','我闻到 bug 的味道了','先复现，再谈修复','把日志给我，我会说人话','错误不是敌人，是线索','把影响面圈起来','先止血，再手术','我在：马上定位根因','别怕，这种我见多了','报警中：让问题自己现形'],
+                thinking: ['让我先在脑子里画一下','先把问题拆成子问题','这里有个反直觉的点','我在白板上画因果图','先不写代码，先想清楚','有个更优的抽象','先画 SD，再动手','让我重新 frame 一下'],
                 cat: ['喵~','咕噜咕噜…','尾巴摇一摇','晒太阳最开心','有人来看我啦','我是这个办公室的吉祥物','伸个懒腰','今天的罐罐准备好了吗','呼噜呼噜','这个位置视野最好']
             },
             en: {
@@ -1638,6 +1640,7 @@
                 executing: ['Executing—don’t blink.','Split tasks, conquer one by one.','Pipeline is running.','One-click push: go go.','Let the results speak.','Build MVP first, then craft beauty.'],
                 syncing: ['Syncing: lock today into the cloud.','Backup is safety, not ceremony.','Writing… don’t cut power.','Handing changes to timestamps.','Cloud alignment: click.','Don’t shake it before sync finishes.','Saving future-us from disasters.','One more backup, one less regret.'],
                 error: ['Alarm on—stay calm.','I can smell a bug.','Reproduce first, then fix.','Give me logs; I’ll translate.','Errors are clues, not enemies.','Circle the impact area first.','Stop the bleeding, then surgery.','On it: tracing root cause now.','Don’t worry, seen this many times.','Alert mode: make the issue reveal itself.'],
+                thinking: ['Sketching it in my head first.','Let me split this into sub-problems.','There’s a counter-intuitive twist here.','Drawing the causality diagram.','Think first, code later.','A cleaner abstraction exists.','Let me re-frame the problem.','Sequence diagram first, code after.'],
                 cat: ['Meow~','Purr purr…','Tail wiggle activated.','Sunbathing is the best.','Someone came to see me!','I’m the office mascot.','Big stretch~','Is today’s snack ready yet?','Rrrrr purr…','Best view spot secured.']
             },
             ja: {
@@ -1647,6 +1650,7 @@
                 executing: ['実行中：まばたき厳禁。','タスクを分割して各個撃破。','パイプライン起動。','ワンクリック前進：いくぞ。','結果に語らせる。','まず最小実用、次に美しさ。'],
                 syncing: ['同期中：今日をクラウドに封印。','バックアップは儀式じゃなく安心。','書き込み中…電源オフ厳禁。','変更はタイムスタンプへ。','クラウド整列：カチッ。','同期完了まで触らないで。','未来の自分を災害から救う。','バックアップ一つ、後悔一つ減る。'],
                 error: ['警報：まず落ち着いて。','バグの気配を感じる。','再現してから修正へ。','ログをください、人語にします。','エラーは敵ではなく手がかり。','まず影響範囲を囲う。','止血してから手術。','今すぐ根因を追跡中。','大丈夫、よくある案件。','警戒モード：問題を可視化する。'],
+                thinking: ['まず頭の中で描いてみる。','問題を小さく分解。','ここに直感に反する点あり。','因果図をホワイトボードに。','コードの前に、まず考える。','より良い抽象がある。','問題をリフレームしよう。','先にSD、次にコード。'],
                 cat: ['ニャー','ゴロゴロ…','しっぽフリフリ。','ひなたぼっこ最高。','見に来てくれた！','このオフィスのマスコットです。','ぐーっと伸び。','今日のおやつ、準備できた？','ゴロゴロ。','ここ、いちばん見晴らしがいい。']
             }
         };
@@ -4040,6 +4044,8 @@ function toggleBrokerPanel() {
                 door: { x: 640, y: 550 }, // 墙的门（偏下 1/3 位置）
                 writing: { x: 320, y: 360 }, // 左 1/3 中间（办公桌）
                 researching: { x: 320, y: 360 }, // 左 1/3 中间（研究也在办公区
+                executing: { x: 920, y: 230 }, // 服务器机架前
+                thinking: { x: 400, y: 160 }, // 海报/书架前（暂替代白板）
                 error: { x: 1066, y: 180 }, // 右 1/3 上 1/2（服务器区
                 breakroom: { x: IDLE_SOFA_ANCHOR.x, y: IDLE_SOFA_ANCHOR.y } // 与 sofa-idle-v3 同中心锚点
             };
@@ -4584,6 +4590,7 @@ function toggleBrokerPanel() {
             if (s === 'run' || s === 'running') return 'executing';
             if (s === 'sync') return 'syncing';
             if (s === 'research') return 'researching';
+            if (s === 'think' || s === 'design' || s === 'summary' || s === 'brainstorm' || s === 'plan') return 'thinking';
             return s;
         }
 
@@ -4622,14 +4629,30 @@ function toggleBrokerPanel() {
                     window.starWorking.setVisible(false);
                     window.starWorking.anims.stop();
                 }
+            } else if (nextState === 'executing' || nextState === 'thinking') {
+                // Executing / thinking reuse starWorking sprite but relocate it
+                // to the area coords (server rack / poster wall).
+                sofa.anims.stop();
+                sofa.setTexture('sofa_idle');
+                star.setVisible(false);
+                star.anims.stop();
+                if (window.starWorking) {
+                    const info = STATES[nextState] || STATES.idle;
+                    const loc = areas[info.area] || areas.breakroom;
+                    window.starWorking.setPosition(loc.x, loc.y);
+                    window.starWorking.setVisible(true);
+                    window.starWorking.anims.play('star_working', true);
+                }
             } else {
-                // Non-idle non-error: starWorking animation at desk
+                // Non-idle non-error: starWorking animation at desk (writing / researching)
                 sofa.anims.stop();
                 sofa.setTexture('sofa_idle');
                 // Hide moving star, show desk star
                 star.setVisible(false);
                 star.anims.stop();
                 if (window.starWorking) {
+                    // Reset to the pre-authored desk position (217, 343).
+                    window.starWorking.setPosition(217, 343);
                     window.starWorking.setVisible(true);
                     window.starWorking.anims.play('star_working', true);
                 }
