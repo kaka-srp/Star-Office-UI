@@ -18,6 +18,8 @@ const LAYOUT = {
     door:        { x: 640, y: 550 },
     writing:     { x: 320, y: 360 },
     researching: { x: 320, y: 360 },
+    executing:   { x: 920, y: 230 },  // 服务器机架前
+    thinking:    { x: 400, y: 160 },  // 海报/书架前（暂替代白板）
     error:       { x: 1066, y: 180 },
     breakroom:   { x: 640, y: 360 }
   },

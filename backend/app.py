@@ -69,13 +69,16 @@ ASSET_DEFAULTS_FILE = os.path.join(ROOT_DIR, "asset-defaults.json")
 RUNTIME_CONFIG_FILE = os.path.join(ROOT_DIR, "runtime-config.json")
 
 # Canonical agent states: single source of truth for validation and mapping
-VALID_AGENT_STATES = frozenset({"idle", "writing", "researching", "executing", "syncing", "error"})
-WORKING_STATES = frozenset({"writing", "researching", "executing"})  # subset used for auto-idle TTL
+VALID_AGENT_STATES = frozenset({
+    "idle", "writing", "researching", "executing", "syncing", "error", "thinking",
+})
+WORKING_STATES = frozenset({"writing", "researching", "executing", "thinking"})  # subset used for auto-idle TTL
 STATE_TO_AREA_MAP = {
     "idle": "breakroom",
     "writing": "writing",
-    "researching": "writing",
-    "executing": "writing",
+    "researching": "researching",
+    "executing": "executing",
+    "thinking": "thinking",
     "syncing": "writing",
     "error": "error",
 }
@@ -576,6 +579,8 @@ def normalize_agent_state(s):
         return 'syncing'
     if s_lower in {'research', 'search'}:
         return 'researching'
+    if s_lower in {'think', 'design', 'summary', 'brainstorm', 'plan'}:
+        return 'thinking'
     if s_lower in VALID_AGENT_STATES:
         return s_lower
     return 'idle'

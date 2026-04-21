@@ -103,7 +103,8 @@ const STATES = {
   idle: { name: '待命', area: 'breakroom' },
   writing: { name: '整理文档', area: 'writing' },
   researching: { name: '搜索信息', area: 'researching' },
-  executing: { name: '执行任务', area: 'writing' },
+  executing: { name: '执行任务', area: 'executing' },
+  thinking: { name: '思考设计', area: 'thinking' },
   syncing: { name: '同步备份', area: 'writing' },
   error: { name: '出错了', area: 'error' }
 };
@@ -172,6 +173,16 @@ const BUBBLE_TEXTS = {
     '我在：马上定位根因',
     '别怕，这种我见多了',
     '报警中：让问题自己现形'
+  ],
+  thinking: [
+    '让我先在脑子里画一下',
+    '先把问题拆成子问题',
+    '这里有个反直觉的点',
+    '我在白板上画因果图',
+    '先不写代码，先想清楚',
+    '有个更优的抽象',
+    '让我重新 frame 一下',
+    '先画个 SD，再动手'
   ],
   cat: [
     '喵~',
@@ -697,6 +708,7 @@ function normalizeState(s) {
   if (s === 'run' || s === 'running') return 'executing';
   if (s === 'sync') return 'syncing';
   if (s === 'research') return 'researching';
+  if (s === 'think' || s === 'design' || s === 'summary') return 'thinking';
   return s;
 }
 
@@ -713,66 +725,18 @@ function fetchStatus() {
         typewriterText = '';
         typewriterIndex = 0;
 
-        pendingDesiredState = null;
-        currentState = nextState;
+        // Record desired next state but don't switch yet — walkStar walks there first.
+        pendingDesiredState = nextState;
+        beginWalkTo(nextState);
 
-        if (nextState === 'idle') {
-          if (game.textures.exists('sofa_busy')) {
-            sofa.setTexture('sofa_busy');
-            sofa.anims.play('sofa_busy', true);
-          }
-          star.setVisible(false);
-          star.anims.stop();
-          if (window.starWorking) {
-            window.starWorking.setVisible(false);
-            window.starWorking.anims.stop();
-          }
-        } else if (nextState === 'error') {
-          sofa.anims.stop();
-          sofa.setTexture('sofa_idle');
-          star.setVisible(false);
-          star.anims.stop();
-          if (window.starWorking) {
-            window.starWorking.setVisible(false);
-            window.starWorking.anims.stop();
-          }
-        } else if (nextState === 'syncing') {
-          sofa.anims.stop();
-          sofa.setTexture('sofa_idle');
-          star.setVisible(false);
-          star.anims.stop();
-          if (window.starWorking) {
-            window.starWorking.setVisible(false);
-            window.starWorking.anims.stop();
-          }
-        } else {
-          sofa.anims.stop();
-          sofa.setTexture('sofa_idle');
-          star.setVisible(false);
-          star.anims.stop();
-          if (window.starWorking) {
-            window.starWorking.setVisible(true);
-            window.starWorking.anims.play('star_working', true);
-          }
-        }
-
+        // Cosmetic decorations that don't depend on the character position:
+        // server rack LEDs turn off when fully idle, on otherwise.
         if (serverroom) {
           if (nextState === 'idle') {
             serverroom.anims.stop();
             serverroom.setFrame(0);
           } else {
             serverroom.anims.play('serverroom_on', true);
-          }
-        }
-
-        if (syncAnimSprite) {
-          if (nextState === 'syncing') {
-            if (!syncAnimSprite.anims.isPlaying || syncAnimSprite.anims.currentAnim?.key !== 'sync_anim') {
-              syncAnimSprite.anims.play('sync_anim', true);
-            }
-          } else {
-            if (syncAnimSprite.anims.isPlaying) syncAnimSprite.anims.stop();
-            syncAnimSprite.setFrame(0);
           }
         }
       } else {
@@ -790,11 +754,119 @@ function fetchStatus() {
     });
 }
 
-function moveStar(time) {
-  const effectiveState = pendingDesiredState || currentState;
-  const stateInfo = STATES[effectiveState] || STATES.idle;
-  const baseTarget = areas[stateInfo.area] || areas.breakroom;
+// ── Walking subsystem ────────────────────────────────────────────
+// The idle-sprite `star` is used as a walking proxy: when the agent
+// state changes, we teleport it to the current scene location of the
+// previously-shown sprite, then walk to the new area's coordinates.
+// On arrival, the appropriate state sprite is shown (and repositioned
+// if the area demands it — e.g. executing/thinking reuse starWorking
+// but relocated near the server rack / poster wall).
+function getCurrentScenePos() {
+  if (window.starWorking && window.starWorking.visible) {
+    return { x: window.starWorking.x, y: window.starWorking.y };
+  }
+  if (window.errorBug && window.errorBug.visible) {
+    return { x: window.errorBug.x, y: window.errorBug.y };
+  }
+  // Default: sofa / breakroom
+  return { x: areas.breakroom.x, y: areas.breakroom.y };
+}
 
+function beginWalkTo(nextState) {
+  const stateInfo = STATES[nextState] || STATES.idle;
+  const endArea = areas[stateInfo.area] || areas.breakroom;
+  const startPos = getCurrentScenePos();
+
+  // Hide all destination sprites — star proxy takes over for the walk.
+  if (window.starWorking) {
+    window.starWorking.setVisible(false);
+    window.starWorking.anims.stop();
+  }
+  // errorBug stays (it ping-pongs regardless, but we ignore it during transit)
+
+  // Teleport walking proxy to the starting scene position
+  star.setPosition(startPos.x, startPos.y);
+  star.setVisible(true);
+  if (!star.anims.isPlaying) {
+    star.anims.play('star_idle', true);
+  }
+
+  // Kick off the walk
+  waypoints = [{ x: endArea.x, y: endArea.y }];
+  targetX = endArea.x;
+  targetY = endArea.y;
+  isMoving = true;
+}
+
+// Called once the walking proxy has reached the target area.
+function arriveAt(nextState) {
+  const stateInfo = STATES[nextState] || STATES.idle;
+  const area = areas[stateInfo.area] || areas.breakroom;
+
+  // Always hide the walking proxy on arrival.
+  star.setVisible(false);
+  star.anims.stop();
+
+  if (nextState === 'idle') {
+    if (window.starWorking) {
+      window.starWorking.setVisible(false);
+      window.starWorking.anims.stop();
+    }
+    if (game.textures.exists('sofa_busy')) {
+      sofa.setTexture('sofa_busy');
+      sofa.anims.play('sofa_busy', true);
+    }
+    return;
+  }
+
+  // Non-idle, non-error working states all reuse the starWorking sprite —
+  // but for executing / thinking we reposition it to the new area.
+  sofa.anims.stop();
+  sofa.setTexture('sofa_idle');
+
+  if (nextState === 'error') {
+    if (window.starWorking) {
+      window.starWorking.setVisible(false);
+      window.starWorking.anims.stop();
+    }
+    // errorBug has its own visibility managed elsewhere; do nothing here.
+    return;
+  }
+
+  if (nextState === 'syncing') {
+    // Syncing historically hides starWorking and shows sync_anim sprite.
+    if (window.starWorking) {
+      window.starWorking.setVisible(false);
+      window.starWorking.anims.stop();
+    }
+    if (syncAnimSprite) {
+      if (!syncAnimSprite.anims.isPlaying || syncAnimSprite.anims.currentAnim?.key !== 'sync_anim') {
+        syncAnimSprite.anims.play('sync_anim', true);
+      }
+    }
+    return;
+  }
+
+  // writing / researching / executing / thinking — reuse starWorking sprite,
+  // moving it to the area coords. Writing/researching default back to the
+  // pre-authored desk position from LAYOUT.furniture.starWorking.
+  if (window.starWorking) {
+    if (nextState === 'executing' || nextState === 'thinking') {
+      window.starWorking.setPosition(area.x, area.y);
+    } else {
+      const home = LAYOUT.furniture.starWorking;
+      window.starWorking.setPosition(home.x, home.y);
+    }
+    window.starWorking.setVisible(true);
+    window.starWorking.anims.play('star_working', true);
+  }
+  if (syncAnimSprite && syncAnimSprite.anims.isPlaying) {
+    syncAnimSprite.anims.stop();
+    syncAnimSprite.setFrame(0);
+  }
+}
+
+function moveStar(time) {
   const dx = targetX - star.x;
   const dy = targetY - star.y;
   const dist = Math.sqrt(dx * dx + dy * dy);
@@ -802,69 +874,32 @@ function moveStar(time) {
   const wobble = Math.sin(time / 200) * 0.8;
 
   if (dist > 3) {
+    // Still walking
     star.x += (dx / dist) * speed;
     star.y += (dy / dist) * speed;
     star.setY(star.y + wobble);
     isMoving = true;
-  } else {
-    if (waypoints && waypoints.length > 0) {
-      waypoints.shift();
-      if (waypoints.length > 0) {
-        targetX = waypoints[0].x;
-        targetY = waypoints[0].y;
-        isMoving = true;
-      } else {
-        if (pendingDesiredState !== null) {
-          isMoving = false;
-          currentState = pendingDesiredState;
-          pendingDesiredState = null;
+    return;
+  }
 
-          if (currentState === 'idle') {
-            star.setVisible(false);
-            star.anims.stop();
-            if (window.starWorking) {
-              window.starWorking.setVisible(false);
-              window.starWorking.anims.stop();
-            }
-          } else {
-            star.setVisible(false);
-            star.anims.stop();
-            if (window.starWorking) {
-              window.starWorking.setVisible(true);
-              window.starWorking.anims.play('star_working', true);
-            }
-          }
-        }
-      }
-    } else {
-      if (pendingDesiredState !== null) {
-        isMoving = false;
-        currentState = pendingDesiredState;
-        pendingDesiredState = null;
-
-        if (currentState === 'idle') {
-          star.setVisible(false);
-          star.anims.stop();
-          if (window.starWorking) {
-            window.starWorking.setVisible(false);
-            window.starWorking.anims.stop();
-          }
-          if (game.textures.exists('sofa_busy')) {
-            sofa.setTexture('sofa_busy');
-            sofa.anims.play('sofa_busy', true);
-          }
-        } else {
-          star.setVisible(false);
-          star.anims.stop();
-          if (window.starWorking) {
-            window.starWorking.setVisible(true);
-            window.starWorking.anims.play('star_working', true);
-          }
-          sofa.anims.stop();
-          sofa.setTexture('sofa_idle');
-        }
-      }
+  // Reached current waypoint.
+  if (waypoints && waypoints.length > 0) {
+    waypoints.shift();
+    if (waypoints.length > 0) {
+      targetX = waypoints[0].x;
+      targetY = waypoints[0].y;
+      isMoving = true;
+      return;
     }
+  }
+
+  // All waypoints consumed.
+  if (pendingDesiredState !== null) {
+    isMoving = false;
+    const arrived = pendingDesiredState;
+    currentState = arrived;
+    pendingDesiredState = null;
+    arriveAt(arrived);
   }
 }
 
