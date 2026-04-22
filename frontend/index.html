@@ -4269,11 +4269,11 @@ function toggleBrokerPanel() {
             // Store reference to starWorking for state logic
             window.starWorking = starWorking;
 
-            // Whiteboard: flat wall poster, hung above the fireplace mantel near the
-            // center-left so a standing cat can face it in "thinking" state.
+            // Whiteboard: flat wall poster, hung on the left-side wall above desk_v2
+            // so the "thinking" cat can stand right below and face it.
             if (this.textures.exists('whiteboard_art')) {
-                const wb = this.add.image(400, 90, 'whiteboard_art').setOrigin(0.5);
-                wb.setScale(1.0);
+                const wb = this.add.image(340, 85, 'whiteboard_art').setOrigin(0.5);
+                wb.setScale(1.2);
                 wb.setDepth(6);
                 window.whiteboardArt = wb;
             }
@@ -4311,9 +4311,12 @@ function toggleBrokerPanel() {
                 return s;
             };
             window.actionSprites = {
-                writing:   makeAction('cat_pose_writing',   659, 340, 0.9), // at edit desk
-                executing: makeAction('cat_pose_executing', 1010, 260, 0.9), // in front of server rack
-                thinking:  makeAction('cat_pose_thinking',  400, 190, 0.9), // below whiteboard
+                // writing: cat perched at north edge of edit_desk, torso over the table top
+                writing:   makeAction('cat_pose_writing',   659, 300, 0.9),
+                // executing: cat standing in front of server rack (back-view looking at panel)
+                executing: makeAction('cat_pose_executing', 1010, 270, 0.9),
+                // thinking: cat standing below the whiteboard (back-view looking up at board)
+                thinking:  makeAction('cat_pose_thinking',  340, 200, 0.9),
             };
 
             // Sync animation sprite at (1157,592)
