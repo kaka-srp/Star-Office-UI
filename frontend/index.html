@@ -4161,7 +4161,7 @@ function toggleBrokerPanel() {
             // Random poster at (252,66) (random frame from spritesheet)
             const postersFrameCount = (this.textures.get('posters')?.frameTotal || 1) - 1;
             const randomPosterFrame = Math.floor(Math.random() * Math.max(1, postersFrameCount));
-            const poster = game.add.sprite(190, 66, 'posters', randomPosterFrame).setOrigin(0.5);
+            const poster = game.add.sprite(190, 85, 'posters', randomPosterFrame).setOrigin(0.5);
             poster.setScale(0.75);
             poster.setDepth(4);
             poster.setInteractive({ useHandCursor: true });
@@ -4327,9 +4327,10 @@ function toggleBrokerPanel() {
                 // executing: cat back-view pressed against the server rack panel
                 executing: makeAction('cat_pose_executing', 1010, 240, 0.9),
                 // thinking: cat sprite 120×144 at scale 0.85 = 102×122 (half-height 61).
-                // Whiteboard bottom = 85 + 49 = 134. Cat top should equal 134.
-                // cat center.y = 134 + 61 = 195. cat.x aligned to whiteboard center 360.
-                thinking:  makeAction('cat_pose_thinking',  360, 195, 0.85),
+                // Whiteboard bottom = 134; cat head/claw overlaps the board, feet settle
+                // closer to the wall-floor boundary. cat.y = 200 → top = 139 (5 px into
+                // board) / bottom = 261 (close to the wall/floor line).
+                thinking:  makeAction('cat_pose_thinking',  360, 200, 0.85),
             };
 
             // Sync animation sprite at (1157,592)
