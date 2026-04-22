@@ -1162,10 +1162,13 @@
         <div id="control-bar">
             <div id="control-bar-title">Star 状态</div>
             <div id="control-buttons">
-                <button id="btn-state-idle" onclick="setState('idle','待命')">待命</button>
-                <button id="btn-state-writing" onclick="setState('writing','工作中')">工作</button>
-                <button id="btn-state-syncing" onclick="setState('syncing','同步中')">同步</button>
-                <button id="btn-state-error" onclick="setState('error','报警中')">报警</button>
+                <button id="btn-state-idle" onclick="setState('idle','待命')">Idle</button>
+                <button id="btn-state-writing" onclick="setState('writing','写作')">Writing</button>
+                <button id="btn-state-researching" onclick="setState('researching','搜索')">Research</button>
+                <button id="btn-state-executing" onclick="setState('executing','执行')">Exec</button>
+                <button id="btn-state-thinking" onclick="setState('thinking','思考')">Think</button>
+                <button id="btn-state-syncing" onclick="setState('syncing','同步')">Sync</button>
+                <button id="btn-state-error" onclick="setState('error','报警')">Error</button>
                 <button id="btn-open-drawer" onclick="toggleAssetDrawer()">装修房间</button>
             </div>
         </div>
@@ -4017,9 +4020,9 @@ function toggleBrokerPanel() {
             // Per-state character pose sprite SHEETS (4 frames each, full AI-generated).
             // Regenerated via gpt-image-2 Responses API with reference image → 2x2 grid
             // sliced + chroma-keyed + stitched horizontally.
-            this.load.spritesheet('cat_pose_writing',   '/static/cat-anim-writing.png?v={{VERSION_TIMESTAMP}}',   { frameWidth: 120, frameHeight: 120 });
-            this.load.spritesheet('cat_pose_executing', '/static/cat-anim-executing.png?v={{VERSION_TIMESTAMP}}', { frameWidth: 120, frameHeight: 120 });
-            this.load.spritesheet('cat_pose_thinking',  '/static/cat-anim-thinking.png?v={{VERSION_TIMESTAMP}}',  { frameWidth: 120, frameHeight: 139 });
+            this.load.spritesheet('cat_pose_writing',   '/static/cat-anim-writing.png?v={{VERSION_TIMESTAMP}}',   { frameWidth: 146, frameHeight: 140 });
+            this.load.spritesheet('cat_pose_executing', '/static/cat-anim-executing.png?v={{VERSION_TIMESTAMP}}', { frameWidth: 130, frameHeight: 140 });
+            this.load.spritesheet('cat_pose_thinking',  '/static/cat-anim-thinking.png?v={{VERSION_TIMESTAMP}}',  { frameWidth: 124, frameHeight: 140 });
 
             // Sync state animation (256x256, 多帧): 非同步显示首帧，同步从第2帧循环
             this.load.spritesheet('sync_anim', '/static/sync-animation-v3-grid.webp?v={{VERSION_TIMESTAMP}}', { frameWidth: 256, frameHeight: 256 });
@@ -4313,7 +4316,7 @@ function toggleBrokerPanel() {
                     this.anims.create({
                         key: animKey,
                         frames: this.anims.generateFrameNumbers(key, { start: 0, end: 3 }),
-                        frameRate: 6,
+                        frameRate: 3,
                         repeat: -1,
                     });
                 }
