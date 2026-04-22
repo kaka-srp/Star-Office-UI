@@ -4012,6 +4012,7 @@ function toggleBrokerPanel() {
             // AI-generated wall-mounted whiteboard (standalone furniture sprite).
             this.load.image('whiteboard_art', '/static/whiteboard.png?v={{VERSION_TIMESTAMP}}');
             this.load.image('edit_desk',      '/static/edit-desk.png?v={{VERSION_TIMESTAMP}}');
+            this.load.image('wall_patch',     '/static/wall-patch.png?v={{VERSION_TIMESTAMP}}');
 
             // Per-state character pose sprites (single-frame stills for now).
             this.load.image('cat_pose_writing',   '/static/cat-pose-writing.png?v={{VERSION_TIMESTAMP}}');
@@ -4270,10 +4271,19 @@ function toggleBrokerPanel() {
             // Store reference to starWorking for state logic
             window.starWorking = starWorking;
 
+            // Wall-board patch: covers the painted side-table + picture frame drawn into
+            // the Mountain Lodge background. Sits between bg (depth 0) and every sprite,
+            // so posters/whiteboard still render on top of it.
+            if (this.textures.exists('wall_patch')) {
+                const wp = this.add.image(252, 215, 'wall_patch').setOrigin(0.5);
+                wp.setScale(1.0);
+                wp.setDepth(1);
+                window.wallPatch = wp;
+            }
+
             // Whiteboard hangs beside the Pulp-Fiction poster on the upper-left wall.
             // Scale ~1.2 (160×98 → ~192×118) keeps it reasonable — on par with the
-            // adjacent poster. The painted side-table underneath stays visible; that's
-            // background art we can't edit away, but the board is the thinking anchor.
+            // adjacent poster. Painted side-table is now covered by wall_patch above.
             if (this.textures.exists('whiteboard_art')) {
                 const wb = this.add.image(350, 90, 'whiteboard_art').setOrigin(0.5);
                 wb.setScale(1.2);
