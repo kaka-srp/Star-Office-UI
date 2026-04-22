@@ -4277,10 +4277,10 @@ function toggleBrokerPanel() {
                 window.posterSprite.setVisible(false);
             }
             if (this.textures.exists('whiteboard_art')) {
-                // Scale 1.55 on a 160×98 source → ~248×152 — wide enough to cover both
-                // the old poster and the painted side-table sitting below it.
-                const wb = this.add.image(252, 140, 'whiteboard_art').setOrigin(0.5);
-                wb.setScale(1.55);
+                // Scale 1.9 on a 160×98 source → ~304×186 — tall enough to cover both the
+                // old poster and the painted side-table + picture frame beneath it.
+                const wb = this.add.image(252, 175, 'whiteboard_art').setOrigin(0.5);
+                wb.setScale(1.9);
                 wb.setDepth(6);
                 window.whiteboardArt = wb;
             }
@@ -4320,10 +4320,10 @@ function toggleBrokerPanel() {
             window.actionSprites = {
                 // writing: cat perched at north edge of edit_desk, torso over the table top
                 writing:   makeAction('cat_pose_writing',   659, 300, 0.9),
-                // executing: cat standing in front of server rack (back-view looking at panel)
-                executing: makeAction('cat_pose_executing', 1010, 270, 0.9),
-                // thinking: cat standing below the whiteboard (back-view looking up at board)
-                thinking:  makeAction('cat_pose_thinking',  252, 280, 0.9),
+                // executing: cat back-view pressed against the server rack panel
+                executing: makeAction('cat_pose_executing', 1010, 240, 0.9),
+                // thinking: cat back-view standing right under the whiteboard
+                thinking:  makeAction('cat_pose_thinking',  252, 325, 0.9),
             };
 
             // Sync animation sprite at (1157,592)
