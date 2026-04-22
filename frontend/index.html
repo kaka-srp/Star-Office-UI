@@ -4302,11 +4302,14 @@ function toggleBrokerPanel() {
 
             // Per-state action sprites (lobster-claw cat poses). Scaled to sit in-scene
             // next to existing furniture. researching still uses star_working.
-            const makeAction = (key, x, y, scale) => {
+            // depth: pass explicitly — writing's cat sits BEHIND edit_desk so the desk
+            // occludes the lower body (classic "cat at desk" silhouette); other poses
+            // render above everything to avoid furniture clipping heads.
+            const makeAction = (key, x, y, scale, depth = 1150) => {
                 if (!this.textures.exists(key)) return null;
                 const s = this.add.image(x, y, key).setOrigin(0.5);
                 s.setScale(scale);
-                s.setDepth(1150); // above edit_desk (1100) so the cat renders on top
+                s.setDepth(depth);
                 s.setVisible(false);
                 // Subtle bob + pulse tween — fakes animation without a sprite sheet.
                 this.tweens.add({
@@ -4322,8 +4325,13 @@ function toggleBrokerPanel() {
                 return s;
             };
             window.actionSprites = {
-                // writing: cat perched at north edge of edit_desk, torso over the table top
-                writing:   makeAction('cat_pose_writing',   659, 300, 0.9),
+                // writing: cat-pose-writing sprite is a top-down view of a cat lying on
+                // its belly over a notebook — meant to sit ON the desktop, not beside it.
+                //   edit_desk bbox [560, 322, 758, 472] (220×167 × 0.9 at center 659,397)
+                //   cat sprite 120×108 × 0.9 = 108×97, center (659, 372) — up 25 px
+                //   → cat bbox [605, 323, 713, 420]  (still inside desk bbox 322-472)
+                //   depth 1150 > desk 1100 so cat renders on the tabletop.
+                writing:   makeAction('cat_pose_writing',   659, 372, 0.9, 1150),
                 // executing: cat back-view pressed against the server rack panel
                 executing: makeAction('cat_pose_executing', 1010, 240, 0.9),
                 // thinking: cat sprite 120×144 at scale 0.85 = 102×122 (half-height 61).
