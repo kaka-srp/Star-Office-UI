@@ -4161,7 +4161,7 @@ function toggleBrokerPanel() {
             // Random poster at (252,66) (random frame from spritesheet)
             const postersFrameCount = (this.textures.get('posters')?.frameTotal || 1) - 1;
             const randomPosterFrame = Math.floor(Math.random() * Math.max(1, postersFrameCount));
-            const poster = game.add.sprite(252, 66, 'posters', randomPosterFrame).setOrigin(0.5);
+            const poster = game.add.sprite(160, 66, 'posters', randomPosterFrame).setOrigin(0.5);
             poster.setDepth(4);
             poster.setInteractive({ useHandCursor: true });
             // Expose to global for click handler
@@ -4274,11 +4274,10 @@ function toggleBrokerPanel() {
             // Wall-patch sprite disabled — the background itself was AI-edited to clean
             // the left-wall area, so no patch overlay is needed anymore.
 
-            // Whiteboard hangs beside the Pulp-Fiction poster on the upper-left wall.
-            // Scale ~1.2 (160×98 → ~192×118) keeps it reasonable — on par with the
-            // adjacent poster. Painted side-table is now covered by wall_patch above.
+            // Whiteboard now sits where the poster used to be (252,85) — the poster has
+            // been moved left to (160,66) over the bookshelf. Scale 1.2 for visibility.
             if (this.textures.exists('whiteboard_art')) {
-                const wb = this.add.image(350, 90, 'whiteboard_art').setOrigin(0.5);
+                const wb = this.add.image(330, 85, 'whiteboard_art').setOrigin(0.5);
                 wb.setScale(1.2);
                 wb.setDepth(6);
                 window.whiteboardArt = wb;
@@ -4321,8 +4320,8 @@ function toggleBrokerPanel() {
                 writing:   makeAction('cat_pose_writing',   659, 300, 0.9),
                 // executing: cat back-view pressed against the server rack panel
                 executing: makeAction('cat_pose_executing', 1010, 240, 0.9),
-                // thinking: cat back-view standing right under the whiteboard
-                thinking:  makeAction('cat_pose_thinking',  350, 200, 0.9),
+                // thinking: cat back-view standing right under the whiteboard at (330,85)
+                thinking:  makeAction('cat_pose_thinking',  330, 210, 0.85),
             };
 
             // Sync animation sprite at (1157,592)
