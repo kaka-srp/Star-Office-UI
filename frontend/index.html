@@ -4161,7 +4161,8 @@ function toggleBrokerPanel() {
             // Random poster at (252,66) (random frame from spritesheet)
             const postersFrameCount = (this.textures.get('posters')?.frameTotal || 1) - 1;
             const randomPosterFrame = Math.floor(Math.random() * Math.max(1, postersFrameCount));
-            const poster = game.add.sprite(170, 66, 'posters', randomPosterFrame).setOrigin(0.5);
+            const poster = game.add.sprite(190, 66, 'posters', randomPosterFrame).setOrigin(0.5);
+            poster.setScale(0.75);
             poster.setDepth(4);
             poster.setInteractive({ useHandCursor: true });
             // Expose to global for click handler
@@ -4274,14 +4275,16 @@ function toggleBrokerPanel() {
             // Wall-patch sprite disabled — the background itself was AI-edited to clean
             // the left-wall area, so no patch overlay is needed anymore.
 
-            // Precisely planned layout (poster 160×160, whiteboard src 160×98):
-            //   poster      at (170,66)                  → right edge = 250
-            //   whiteboard  at (420,110) scale 1.2       → left=324, bottom=168, right=516
-            //   poster→whiteboard gap = 324-250 = 74 px  (clean separation)
-            //   whiteboard right 516 well clear of the fireplace (≈ x 600+)
+            // Measured wall limits (from bg pixel scan):
+            //   bookshelf right edge ≈ x 130
+            //   fireplace left edge  ≈ x 440-450
+            // Layout:
+            //   poster      160×160 × 0.75 = 120 wide, center (190, 66) → bbox 130-250
+            //   whiteboard  160×98  × 1.0  = 160 wide, center (360, 85) → bbox 280-440
+            //   gap between them = 30 px; whiteboard right touches the fireplace edge.
             if (this.textures.exists('whiteboard_art')) {
-                const wb = this.add.image(420, 110, 'whiteboard_art').setOrigin(0.5);
-                wb.setScale(1.2);
+                const wb = this.add.image(360, 85, 'whiteboard_art').setOrigin(0.5);
+                wb.setScale(1.0);
                 wb.setDepth(6);
                 window.whiteboardArt = wb;
             }
@@ -4324,9 +4327,9 @@ function toggleBrokerPanel() {
                 // executing: cat back-view pressed against the server rack panel
                 executing: makeAction('cat_pose_executing', 1010, 240, 0.9),
                 // thinking: cat sprite 120×144 at scale 0.85 = 102×122 (half-height 61).
-                // Whiteboard bottom = 168. Cat top should equal 168 so its raised claw
-                // visually lands on the board → center.y = 168 + 61 = 229.
-                thinking:  makeAction('cat_pose_thinking',  420, 229, 0.85),
+                // Whiteboard bottom = 85 + 49 = 134. Cat top should equal 134.
+                // cat center.y = 134 + 61 = 195. cat.x aligned to whiteboard center 360.
+                thinking:  makeAction('cat_pose_thinking',  360, 195, 0.85),
             };
 
             // Sync animation sprite at (1157,592)
