@@ -4014,10 +4014,12 @@ function toggleBrokerPanel() {
             this.load.image('edit_desk',      '/static/edit-desk.png?v={{VERSION_TIMESTAMP}}');
             this.load.image('wall_patch',     '/static/wall-patch.png?v={{VERSION_TIMESTAMP}}');
 
-            // Per-state character pose sprite SHEETS (4 frames each, red-claw wobble).
-            this.load.spritesheet('cat_pose_writing',   '/static/cat-anim-writing.png?v={{VERSION_TIMESTAMP}}',   { frameWidth: 120, frameHeight: 108 });
-            this.load.spritesheet('cat_pose_executing', '/static/cat-anim-executing.png?v={{VERSION_TIMESTAMP}}', { frameWidth: 120, frameHeight: 137 });
-            this.load.spritesheet('cat_pose_thinking',  '/static/cat-anim-thinking.png?v={{VERSION_TIMESTAMP}}',  { frameWidth: 120, frameHeight: 144 });
+            // Per-state character pose sprite SHEETS (4 frames each, full AI-generated).
+            // Regenerated via gpt-image-2 Responses API with reference image → 2x2 grid
+            // sliced + chroma-keyed + stitched horizontally.
+            this.load.spritesheet('cat_pose_writing',   '/static/cat-anim-writing.png?v={{VERSION_TIMESTAMP}}',   { frameWidth: 120, frameHeight: 120 });
+            this.load.spritesheet('cat_pose_executing', '/static/cat-anim-executing.png?v={{VERSION_TIMESTAMP}}', { frameWidth: 120, frameHeight: 120 });
+            this.load.spritesheet('cat_pose_thinking',  '/static/cat-anim-thinking.png?v={{VERSION_TIMESTAMP}}',  { frameWidth: 120, frameHeight: 139 });
 
             // Sync state animation (256x256, 多帧): 非同步显示首帧，同步从第2帧循环
             this.load.spritesheet('sync_anim', '/static/sync-animation-v3-grid.webp?v={{VERSION_TIMESTAMP}}', { frameWidth: 256, frameHeight: 256 });
