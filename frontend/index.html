@@ -4009,9 +4009,14 @@ function toggleBrokerPanel() {
             // 动态替换后按最新素材识别：当前 writing 素材为 300x300 单帧
             this.load.spritesheet('star_working', '/static/star-working-spritesheet-grid.webp?v={{VERSION_TIMESTAMP}}', { frameWidth: 300, frameHeight: 300 });
 
-            // AI-generated furniture sprites — mounted in the scene, not tied to state.
+            // AI-generated wall-mounted whiteboard (standalone furniture sprite).
             this.load.image('whiteboard_art', '/static/whiteboard.png?v={{VERSION_TIMESTAMP}}');
             this.load.image('edit_desk',      '/static/edit-desk.png?v={{VERSION_TIMESTAMP}}');
+
+            // Per-state character pose sprites (single-frame stills for now).
+            this.load.image('cat_pose_writing',   '/static/cat-pose-writing.png?v={{VERSION_TIMESTAMP}}');
+            this.load.image('cat_pose_executing', '/static/cat-pose-executing.png?v={{VERSION_TIMESTAMP}}');
+            this.load.image('cat_pose_thinking',  '/static/cat-pose-thinking.png?v={{VERSION_TIMESTAMP}}');
 
             // Sync state animation (256x256, 多帧): 非同步显示首帧，同步从第2帧循环
             this.load.spritesheet('sync_anim', '/static/sync-animation-v3-grid.webp?v={{VERSION_TIMESTAMP}}', { frameWidth: 256, frameHeight: 256 });
@@ -4264,30 +4269,52 @@ function toggleBrokerPanel() {
             // Store reference to starWorking for state logic
             window.starWorking = starWorking;
 
-            // Generated furniture: mounted once, stays visible across states.
-            //   whiteboard_art — wall-mounted whiteboard for the "thinking" workstation
-            //   edit_desk      — extra writing desk occupying the coffee-machine slot
+            // Whiteboard: flat wall poster, hung above the fireplace mantel near the
+            // center-left so a standing cat can face it in "thinking" state.
             if (this.textures.exists('whiteboard_art')) {
                 const wb = this.add.image(400, 90, 'whiteboard_art').setOrigin(0.5);
-                wb.setScale(0.9);
-                wb.setDepth(4); // below character, above bg
+                wb.setScale(1.0);
+                wb.setDepth(6);
                 window.whiteboardArt = wb;
             }
+
+            // Edit desk (for "writing" state only). Positioned where the coffee machine
+            // sits. Hidden by default; applyVisualState toggles it with the writing state
+            // (and toggles the original coffee machine inversely).
             if (this.textures.exists('edit_desk')) {
                 const ed = this.add.image(659, 397, 'edit_desk').setOrigin(0.5);
                 ed.setScale(0.9);
-                ed.setDepth(1200); // push above coffee machine and anything else at this slot
+                ed.setDepth(1100); // above coffee machine, below flowers etc
+                ed.setVisible(false);
                 window.editDesk = ed;
             }
-            // Hide the original coffee machine (and its shadow) so the edit desk isn't
-            // visually crowded at the same slot.
-            if (window.coffeeMachine?.setVisible) {
-                window.coffeeMachine.setVisible(false);
-                window.coffeeMachine.anims?.stop?.();
-            }
-            if (window.coffeeMachineShadow?.setVisible) {
-                window.coffeeMachineShadow.setVisible(false);
-            }
+
+            // Per-state action sprites (lobster-claw cat poses). Scaled to sit in-scene
+            // next to existing furniture. researching still uses star_working.
+            const makeAction = (key, x, y, scale) => {
+                if (!this.textures.exists(key)) return null;
+                const s = this.add.image(x, y, key).setOrigin(0.5);
+                s.setScale(scale);
+                s.setDepth(1150); // above edit_desk (1100) so the cat renders on top
+                s.setVisible(false);
+                // Subtle bob + pulse tween — fakes animation without a sprite sheet.
+                this.tweens.add({
+                    targets: s,
+                    y: y - 3,
+                    scaleX: scale * 1.02,
+                    scaleY: scale * 1.02,
+                    duration: 700,
+                    yoyo: true,
+                    repeat: -1,
+                    ease: 'Sine.easeInOut',
+                });
+                return s;
+            };
+            window.actionSprites = {
+                writing:   makeAction('cat_pose_writing',   659, 340, 0.9), // at edit desk
+                executing: makeAction('cat_pose_executing', 1010, 260, 0.9), // in front of server rack
+                thinking:  makeAction('cat_pose_thinking',  400, 190, 0.9), // below whiteboard
+            };
 
             // Sync animation sprite at (1157,592)
             const syncFrameTotal = Number(this.textures.get('sync_anim')?.frameTotal || 0);
@@ -4625,21 +4652,44 @@ function toggleBrokerPanel() {
             return s;
         }
 
-        // Work-state positions for the star_working sprite.
-        //   researching — desk 1 (original starWorking spot, 217,343)
-        //   writing     — edit desk 2 (coffee-machine slot). y offset mirrors the original
-        //                 starWorking vs desk_v2 relationship so the cat's torso sits above
-        //                 the desk while legs hide behind it.
-        //   executing   — server area, same as errorBug
-        //   thinking    — below the whiteboard on the wall
-        const WORK_POSITIONS = {
-            researching: { x: 217, y: 343 },
-            writing:     { x: 659, y: 333 },
-            executing:   { x: 1007, y: 221 },
-            thinking:    { x: 400, y: 190 },
-        };
+        // researching is the only state still using the built-in star_working animation
+        // (seated typing at the computer, desk_v2). The other work states use per-pose
+        // PNG sprites created in window.actionSprites.
+        function hideAllActionSprites() {
+            if (!window.actionSprites) return;
+            for (const k of Object.keys(window.actionSprites)) {
+                const sp = window.actionSprites[k];
+                if (sp?.setVisible) sp.setVisible(false);
+            }
+        }
+        function showActionSprite(state) {
+            hideAllActionSprites();
+            const sp = window.actionSprites?.[state];
+            if (sp?.setVisible) {
+                sp.setVisible(true);
+                return true;
+            }
+            return false;
+        }
 
         function applyVisualState(nextState) {
+            // Non-work states never show the per-pose action sprites.
+            if (nextState !== 'writing' && nextState !== 'executing' && nextState !== 'thinking') {
+                hideAllActionSprites();
+            }
+
+            // Writing swaps the coffee machine for the edit desk; other states show coffee.
+            const writing = nextState === 'writing';
+            if (window.editDesk?.setVisible) window.editDesk.setVisible(writing);
+            if (window.coffeeMachine?.setVisible) {
+                window.coffeeMachine.setVisible(!writing);
+                if (writing) window.coffeeMachine.anims?.stop?.();
+                else if (!window.coffeeMachine.anims?.isPlaying) window.coffeeMachine.anims?.play?.('coffee_machine', true);
+            }
+            if (window.coffeeMachineShadow?.setVisible) {
+                window.coffeeMachineShadow.setVisible(!writing);
+            }
+
             // Idle: show Star idle animation (main character)
             if (nextState === 'idle') {
                 sofa.anims.stop();
@@ -4675,17 +4725,27 @@ function toggleBrokerPanel() {
                     window.starWorking.anims.stop();
                 }
             } else {
-                // Any work state (writing / researching / executing / thinking):
-                // reuse the starWorking animation and move it to the station.
+                // Work state: show an action sprite per state. researching is the one
+                // state that keeps the original star_working animated sprite.
                 sofa.anims.stop();
                 sofa.setTexture('sofa_idle');
                 star.setVisible(false);
                 star.anims.stop();
-                if (window.starWorking) {
-                    const pos = WORK_POSITIONS[nextState] || WORK_POSITIONS.researching;
-                    window.starWorking.setPosition(pos.x, pos.y);
-                    window.starWorking.setVisible(true);
-                    window.starWorking.anims.play('star_working', true);
+
+                if (nextState === 'researching') {
+                    hideAllActionSprites();
+                    if (window.starWorking) {
+                        window.starWorking.setPosition(217, 333); // desk_v2 default
+                        window.starWorking.setVisible(true);
+                        window.starWorking.anims.play('star_working', true);
+                    }
+                } else {
+                    // writing / executing / thinking — static pose sprites
+                    if (window.starWorking) {
+                        window.starWorking.setVisible(false);
+                        window.starWorking.anims.stop();
+                    }
+                    showActionSprite(nextState);
                 }
             }
 
