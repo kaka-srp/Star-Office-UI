@@ -4271,15 +4271,8 @@ function toggleBrokerPanel() {
             // Store reference to starWorking for state logic
             window.starWorking = starWorking;
 
-            // Wall-board patch: covers the painted side-table + picture frame drawn into
-            // the Mountain Lodge background. Sits between bg (depth 0) and every sprite,
-            // so posters/whiteboard still render on top of it.
-            if (this.textures.exists('wall_patch')) {
-                const wp = this.add.image(252, 215, 'wall_patch').setOrigin(0.5);
-                wp.setScale(1.0);
-                wp.setDepth(1);
-                window.wallPatch = wp;
-            }
+            // Wall-patch sprite disabled — the background itself was AI-edited to clean
+            // the left-wall area, so no patch overlay is needed anymore.
 
             // Whiteboard hangs beside the Pulp-Fiction poster on the upper-left wall.
             // Scale ~1.2 (160×98 → ~192×118) keeps it reasonable — on par with the
