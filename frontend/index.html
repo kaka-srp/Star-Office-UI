@@ -4014,10 +4014,10 @@ function toggleBrokerPanel() {
             this.load.image('edit_desk',      '/static/edit-desk.png?v={{VERSION_TIMESTAMP}}');
             this.load.image('wall_patch',     '/static/wall-patch.png?v={{VERSION_TIMESTAMP}}');
 
-            // Per-state character pose sprites (single-frame stills for now).
-            this.load.image('cat_pose_writing',   '/static/cat-pose-writing.png?v={{VERSION_TIMESTAMP}}');
-            this.load.image('cat_pose_executing', '/static/cat-pose-executing.png?v={{VERSION_TIMESTAMP}}');
-            this.load.image('cat_pose_thinking',  '/static/cat-pose-thinking.png?v={{VERSION_TIMESTAMP}}');
+            // Per-state character pose sprite SHEETS (4 frames each, red-claw wobble).
+            this.load.spritesheet('cat_pose_writing',   '/static/cat-anim-writing.png?v={{VERSION_TIMESTAMP}}',   { frameWidth: 120, frameHeight: 108 });
+            this.load.spritesheet('cat_pose_executing', '/static/cat-anim-executing.png?v={{VERSION_TIMESTAMP}}', { frameWidth: 120, frameHeight: 137 });
+            this.load.spritesheet('cat_pose_thinking',  '/static/cat-anim-thinking.png?v={{VERSION_TIMESTAMP}}',  { frameWidth: 120, frameHeight: 144 });
 
             // Sync state animation (256x256, 多帧): 非同步显示首帧，同步从第2帧循环
             this.load.spritesheet('sync_anim', '/static/sync-animation-v3-grid.webp?v={{VERSION_TIMESTAMP}}', { frameWidth: 256, frameHeight: 256 });
@@ -4300,28 +4300,26 @@ function toggleBrokerPanel() {
                 window.editDesk = ed;
             }
 
-            // Per-state action sprites (lobster-claw cat poses). Scaled to sit in-scene
-            // next to existing furniture. researching still uses star_working.
-            // depth: pass explicitly — writing's cat sits BEHIND edit_desk so the desk
-            // occludes the lower body (classic "cat at desk" silhouette); other poses
-            // render above everything to avoid furniture clipping heads.
+            // Per-state action SPRITES: each is a 4-frame sprite sheet with a red-claw
+            // wobble, producing a "writing/pressing/drawing" loop.
+            // writing sits BEHIND edit_desk (depth 1050); other poses render above.
             const makeAction = (key, x, y, scale, depth = 1150) => {
                 if (!this.textures.exists(key)) return null;
-                const s = this.add.image(x, y, key).setOrigin(0.5);
+                // Register the animation once per key.
+                const animKey = 'anim_' + key;
+                if (!this.anims.exists(animKey)) {
+                    this.anims.create({
+                        key: animKey,
+                        frames: this.anims.generateFrameNumbers(key, { start: 0, end: 3 }),
+                        frameRate: 6,
+                        repeat: -1,
+                    });
+                }
+                const s = this.add.sprite(x, y, key, 0).setOrigin(0.5);
                 s.setScale(scale);
                 s.setDepth(depth);
                 s.setVisible(false);
-                // Subtle bob + pulse tween — fakes animation without a sprite sheet.
-                this.tweens.add({
-                    targets: s,
-                    y: y - 3,
-                    scaleX: scale * 1.02,
-                    scaleY: scale * 1.02,
-                    duration: 700,
-                    yoyo: true,
-                    repeat: -1,
-                    ease: 'Sine.easeInOut',
-                });
+                s.anims.play(animKey);
                 return s;
             };
             window.actionSprites = {
