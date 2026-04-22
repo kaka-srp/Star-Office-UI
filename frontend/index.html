@@ -4327,10 +4327,11 @@ function toggleBrokerPanel() {
                 // executing: cat back-view pressed against the server rack panel
                 executing: makeAction('cat_pose_executing', 1010, 240, 0.9),
                 // thinking: cat sprite 120×144 at scale 0.85 = 102×122 (half-height 61).
-                // Whiteboard bottom = 134; cat head/claw overlaps the board, feet settle
-                // closer to the wall-floor boundary. cat.y = 200 → top = 139 (5 px into
-                // board) / bottom = 261 (close to the wall/floor line).
-                thinking:  makeAction('cat_pose_thinking',  360, 200, 0.85),
+                // Bg pixel scan: wall→floor boundary at y≈190.
+                // cat.y = 160 → top = 99 (head overlaps whiteboard bottom=134 by ~35 px,
+                // the claw visibly enters the board) / bottom = 221 (feet 31 px from wall,
+                // i.e. standing tight against the wall base).
+                thinking:  makeAction('cat_pose_thinking',  360, 160, 0.85),
             };
 
             // Sync animation sprite at (1157,592)
