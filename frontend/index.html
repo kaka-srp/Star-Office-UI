@@ -4222,6 +4222,7 @@ function toggleBrokerPanel() {
             // Desk at (218,417) (v2)
             const desk = this.add.image(218, 417, 'desk_v2').setOrigin(0.5);
             desk.setDepth(1001);  // desk above starWorking
+            window.deskV2 = desk;
 
             // Random flower pot at (310,390), default scale 0.8 (top layer)
             const flowerFrameCount = Math.max(1, FLOWERS_FRAME_COLS * FLOWERS_FRAME_ROWS); // 动态帧数
@@ -4269,11 +4270,17 @@ function toggleBrokerPanel() {
             // Store reference to starWorking for state logic
             window.starWorking = starWorking;
 
-            // Whiteboard: flat wall poster, hung on the left-side wall above desk_v2
-            // so the "thinking" cat can stand right below and face it.
+            // Whiteboard: takes over the upper-left wall panel (the random poster slot).
+            // We also hide the Pulp-Fiction/HP/etc poster sprite so the board owns the
+            // wall area and covers the little side-table drawn into the background.
+            if (window.posterSprite?.setVisible) {
+                window.posterSprite.setVisible(false);
+            }
             if (this.textures.exists('whiteboard_art')) {
-                const wb = this.add.image(340, 85, 'whiteboard_art').setOrigin(0.5);
-                wb.setScale(1.2);
+                // Scale 1.55 on a 160×98 source → ~248×152 — wide enough to cover both
+                // the old poster and the painted side-table sitting below it.
+                const wb = this.add.image(252, 140, 'whiteboard_art').setOrigin(0.5);
+                wb.setScale(1.55);
                 wb.setDepth(6);
                 window.whiteboardArt = wb;
             }
@@ -4316,7 +4323,7 @@ function toggleBrokerPanel() {
                 // executing: cat standing in front of server rack (back-view looking at panel)
                 executing: makeAction('cat_pose_executing', 1010, 270, 0.9),
                 // thinking: cat standing below the whiteboard (back-view looking up at board)
-                thinking:  makeAction('cat_pose_thinking',  340, 200, 0.9),
+                thinking:  makeAction('cat_pose_thinking',  252, 280, 0.9),
             };
 
             // Sync animation sprite at (1157,592)
@@ -4692,6 +4699,12 @@ function toggleBrokerPanel() {
             if (window.coffeeMachineShadow?.setVisible) {
                 window.coffeeMachineShadow.setVisible(!writing);
             }
+
+            // Thinking hides the left-side desk (desk_v2 + its flower) so the whiteboard
+            // corner reads as an open standing area for the cat. Other states show them.
+            const thinking = nextState === 'thinking';
+            if (window.deskV2?.setVisible) window.deskV2.setVisible(!thinking);
+            if (window.flowerSprite?.setVisible) window.flowerSprite.setVisible(!thinking);
 
             // Idle: show Star idle animation (main character)
             if (nextState === 'idle') {
