@@ -4161,7 +4161,7 @@ function toggleBrokerPanel() {
             // Random poster at (252,66) (random frame from spritesheet)
             const postersFrameCount = (this.textures.get('posters')?.frameTotal || 1) - 1;
             const randomPosterFrame = Math.floor(Math.random() * Math.max(1, postersFrameCount));
-            const poster = game.add.sprite(200, 66, 'posters', randomPosterFrame).setOrigin(0.5);
+            const poster = game.add.sprite(170, 66, 'posters', randomPosterFrame).setOrigin(0.5);
             poster.setDepth(4);
             poster.setInteractive({ useHandCursor: true });
             // Expose to global for click handler
@@ -4274,11 +4274,13 @@ function toggleBrokerPanel() {
             // Wall-patch sprite disabled — the background itself was AI-edited to clean
             // the left-wall area, so no patch overlay is needed anymore.
 
-            // Whiteboard beside the poster on the left wall. Poster is at (200,66);
-            // whiteboard at (380,100) with scale 1.2 puts its bottom edge at y≈159 —
-            // close enough for the standing cat below to reach up to.
+            // Precisely planned layout (poster 160×160, whiteboard src 160×98):
+            //   poster      at (170,66)                  → right edge = 250
+            //   whiteboard  at (420,110) scale 1.2       → left=324, bottom=168, right=516
+            //   poster→whiteboard gap = 324-250 = 74 px  (clean separation)
+            //   whiteboard right 516 well clear of the fireplace (≈ x 600+)
             if (this.textures.exists('whiteboard_art')) {
-                const wb = this.add.image(380, 100, 'whiteboard_art').setOrigin(0.5);
+                const wb = this.add.image(420, 110, 'whiteboard_art').setOrigin(0.5);
                 wb.setScale(1.2);
                 wb.setDepth(6);
                 window.whiteboardArt = wb;
@@ -4321,8 +4323,10 @@ function toggleBrokerPanel() {
                 writing:   makeAction('cat_pose_writing',   659, 300, 0.9),
                 // executing: cat back-view pressed against the server rack panel
                 executing: makeAction('cat_pose_executing', 1010, 240, 0.9),
-                // thinking: cat back-view, head/claws reach up to whiteboard bottom at y≈159
-                thinking:  makeAction('cat_pose_thinking',  380, 220, 0.85),
+                // thinking: cat sprite 120×144 at scale 0.85 = 102×122 (half-height 61).
+                // Whiteboard bottom = 168. Cat top should equal 168 so its raised claw
+                // visually lands on the board → center.y = 168 + 61 = 229.
+                thinking:  makeAction('cat_pose_thinking',  420, 229, 0.85),
             };
 
             // Sync animation sprite at (1157,592)
